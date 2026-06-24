@@ -107,15 +107,22 @@ class DataStream:
 
     def process_stream(self, stream: list[typing.Any]):
         for d in stream:
+            if (not any([p.validate(d) for p in self._processors])):
+                print("DataStream error - "
+                      f"Can't process element in stream: {d}")
             for p in self._processors:
                 p.ingest(d) if p.validate(d) else None
 
     def print_processors_stats(self) -> None:
-        for p in self._processors:
-            print(
-                f"{p.__class__.__name__.replace("Processor", " Processor")}: "
-                f"total {p._rank} items processed, remaining {len(p._data)}"
-                " on processor")
+        if (len(self._processors) == 0):
+            print("No processor found, no data")
+        else:
+            print("== DataStream Statistics ==")
+            for p in self._processors:
+                print(
+                    f"{p.__class__.__name__.replace("Processor", " Processor")}: "
+                    f"total {p._rank} items processed, remaining {len(p._data)}"
+                    " on processor")
 
 
 if __name__ == "__main__":
@@ -123,7 +130,8 @@ if __name__ == "__main__":
     print("Initialize Data Stream...")
     ds = DataStream()
     ds.print_processors_stats()
-    print("Registering Numeric Processor")
+    print()
+    print("Registering Numeric Processor", end="\n\n")
     np = NumericProcessor()
     ds.register_processor(np)
     data = ["Hello World",
@@ -136,5 +144,11 @@ if __name__ == "__main__":
             ["Hi", "five"]]
     print(f"Send first batch of data on stream: {data}")
     ds.process_stream(data)
-    print("== DataStream Statistics ==")
+    ds.print_processors_stats()
+    print()
+    print("Registering other data processors")
+    ds.register_processor(TextProcessor())
+    ds.register_processor(LogProcessor())
+    print("Send the same batch again")
+    ds.process_stream(data)
     ds.print_processors_stats()
