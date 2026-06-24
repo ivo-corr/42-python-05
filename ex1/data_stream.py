@@ -59,6 +59,7 @@ class TextProcessor(DataProcessor):
             raise Exception("Improper data")
         if (type(data) is str):
             self._data.append([self._rank, data])
+            self._rank += 1
         else:
             self.ingest(data[0])
             if (len(data[1:]) > 0):
@@ -87,6 +88,7 @@ class LogProcessor(DataProcessor):
             self._data.append([self._rank, data["log_level"] + ": " + data["log_message"]])
         else:
             self.ingest(data[0])
+            self._rank += 1
             if (len(data[1:]) > 0):
                 self.ingest(data[1:])
             # for n in data:
@@ -95,33 +97,35 @@ class LogProcessor(DataProcessor):
 
 class DataStream:
     def __init__(self) -> None:
-        self._processors = []
+        self.processors = []
 
     def register_processor(self, proc: DataProcessor) -> None:
         if (not all([not x
                      for x in
-                     [type(proc) is type(dp) for dp in self._processors]])):
+                     [type(proc) is type(dp) for dp in self.processors]])):
             print("This processor type is already registered.")
         else:
-            self._processors.append(proc)
+            self.processors.append(proc)
 
     def process_stream(self, stream: list[typing.Any]):
         for d in stream:
-            if (not any([p.validate(d) for p in self._processors])):
+            if (not any([p.validate(d) for p in self.processors])):
                 print("DataStream error - "
                       f"Can't process element in stream: {d}")
-            for p in self._processors:
+            for p in self.processors:
                 p.ingest(d) if p.validate(d) else None
 
     def print_processors_stats(self) -> None:
-        if (len(self._processors) == 0):
+        if (len(self.processors) == 0):
             print("No processor found, no data")
         else:
             print("== DataStream Statistics ==")
-            for p in self._processors:
+            for p in self.processors:
                 print(
-                    f"{p.__class__.__name__.replace("Processor", " Processor")}: "
-                    f"total {p._rank} items processed, remaining {len(p._data)}"
+                    f"{p.__class__.__name__.replace(
+                        "Processor", " Processor")}: "
+                    f"total {p._rank} items processed, "
+                    f"remaining {len(p._data)}"
                     " on processor")
 
 
@@ -151,4 +155,13 @@ if __name__ == "__main__":
     ds.register_processor(LogProcessor())
     print("Send the same batch again")
     ds.process_stream(data)
+    ds.print_processors_stats()
+    print("\nConsume some elements from the data processors: "
+          "Numeric 3, Text 2, Log 1")
+    ds.processors[0].output()
+    ds.processors[0].output()
+    ds.processors[0].output()
+    ds.processors[1].output()
+    ds.processors[1].output()
+    ds.processors[2].output()
     ds.print_processors_stats()
