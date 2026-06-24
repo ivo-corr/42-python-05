@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+import typing
 
 
 class DataProcessor(ABC):
@@ -8,11 +8,11 @@ class DataProcessor(ABC):
         self._rank = 0
 
     @abstractmethod
-    def validate(self, data: Any) -> bool:
+    def validate(self, data: typing.Any) -> bool:
         pass
 
     @abstractmethod
-    def ingest(self, data: Any) -> None:
+    def ingest(self, data: typing.Any) -> None:
         pass
 
     def output(self) -> tuple[int, str]:
@@ -20,7 +20,7 @@ class DataProcessor(ABC):
 
 
 class NumericProcessor(DataProcessor):
-    def validate(self, data: Any) -> bool:
+    def validate(self, data: typing.Any) -> bool:
         if (type(data) is list):
             if (all([self.validate(n) for n in data])):
                 return (True)
@@ -45,7 +45,7 @@ class NumericProcessor(DataProcessor):
 
 
 class TextProcessor(DataProcessor):
-    def validate(self, data: Any) -> bool:
+    def validate(self, data: typing.Any) -> bool:
         if (type(data) is list):
             if (all([self.validate(d) for d in data])):
                 return (True)
@@ -59,6 +59,7 @@ class TextProcessor(DataProcessor):
             raise Exception("Improper data")
         if (type(data) is str):
             self._data.append([self._rank, data])
+            self._rank += 1
         else:
             self.ingest(data[0])
             if (len(data[1:]) > 0):
@@ -68,7 +69,7 @@ class TextProcessor(DataProcessor):
 
 
 class LogProcessor(DataProcessor):
-    def validate(self, data: Any) -> bool:
+    def validate(self, data: typing.Any) -> bool:
         if (type(data) is list):
             if (all([self.validate(d) for d in data])):
                 return (True)
@@ -87,6 +88,7 @@ class LogProcessor(DataProcessor):
             self._data.append([self._rank, data["log_level"] + ": " + data["log_message"]])
         else:
             self.ingest(data[0])
+            self._rank += 1
             if (len(data[1:]) > 0):
                 self.ingest(data[1:])
             # for n in data:
