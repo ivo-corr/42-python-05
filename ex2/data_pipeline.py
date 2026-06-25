@@ -4,8 +4,8 @@ import typing
 
 class DataProcessor(ABC):
     def __init__(self) -> None:
-        self._data = []
-        self._rank = 0
+        self._data: list[tuple[int, str]] = []
+        self._rank: int = 0
 
     @abstractmethod
     def validate(self, data: typing.Any) -> bool:
@@ -30,13 +30,13 @@ class NumericProcessor(DataProcessor):
         else:
             return (False)
 
-    def ingest(self, data: int | float | list[int, float]) -> None:
+    def ingest(self, data: int | float | list[int | float]) -> None:
         if (not self.validate(data)):
             raise Exception("Improper numeric data")
         if (type(data) is int or type(data) is float):
-            self._data.append([self._rank, str(data)])
+            self._data.append((self._rank, str(data)))
             self._rank += 1
-        else:
+        elif (type(data) is list):
             self.ingest(data[0])
             if (len(data[1:]) > 0):
                 self.ingest(data[1:])
@@ -58,7 +58,7 @@ class TextProcessor(DataProcessor):
         if (not self.validate(data)):
             raise Exception("Improper data")
         if (type(data) is str):
-            self._data.append([self._rank, data])
+            self._data.append((self._rank, data))
             self._rank += 1
         else:
             self.ingest(data[0])
@@ -78,15 +78,15 @@ class LogProcessor(DataProcessor):
                 "log_level" in data.keys() and
                     "log_message" in data.keys()):
                 return (True)
-        else:
-            return (False)
+        return (False)
 
-    def ingest(self, data: dict | list[dict]) -> None:
+    def ingest(self, data: dict[str, str] | list[dict[str, str]]) -> None:
         if (not self.validate(data)):
             raise Exception("Improper data")
         if (type(data) is dict):
-            self._data.append([self._rank, data["log_level"] + ": " + data["log_message"]])
-        else:
+            self._data.append(
+                (self._rank, data["log_level"] + ": " + data["log_message"]))
+        elif (type(data) is list[dict[str, str]]):
             self.ingest(data[0])
             self._rank += 1
             if (len(data[1:]) > 0):
@@ -126,7 +126,7 @@ class JSONPlugin():
 
 class DataStream:
     def __init__(self) -> None:
-        self.processors = []
+        self.processors: list[DataProcessor] = []
 
     def register_processor(self, proc: DataProcessor) -> None:
         if (not all([not x
@@ -136,7 +136,7 @@ class DataStream:
         else:
             self.processors.append(proc)
 
-    def process_stream(self, stream: list[typing.Any]):
+    def process_stream(self, stream: list[typing.Any]) -> None:
         for d in stream:
             if (not any([p.validate(d) for p in self.processors])):
                 print("DataStream error - "
