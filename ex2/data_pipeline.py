@@ -95,6 +95,35 @@ class LogProcessor(DataProcessor):
             #     self.ingest(n)
 
 
+class ExportPlugin(typing.Protocol):
+    def process_output(self, data: list[tuple[int, str]]) -> None:
+        ...
+
+
+class CSVPlugin():
+    def process_output(self, data: list[tuple[int, str]]) -> None:
+        if (len(data) > 0):
+            print("CSV Output:")
+            for d in data:
+                print(d[1], end="")
+                if (data.index(d) != len(data) - 1):
+                    print(", ", end="")
+            print()
+
+
+class JSONPlugin():
+    def process_output(self, data: list[tuple[int, str]]) -> None:
+        if (len(data) > 0):
+            print("JSON Output:")
+            print("{", end="")
+            for d in data:
+                print(f"\"item_{d[0]}\": ", end="")
+                print(f"\"{d[1]}\"", end="")
+                if (data.index(d) != len(data) - 1):
+                    print(", ", end="")
+            print("}")
+
+
 class DataStream:
     def __init__(self) -> None:
         self.processors = []
@@ -113,8 +142,7 @@ class DataStream:
                 print("DataStream error - "
                       f"Can't process element in stream: {d}")
             for p in self.processors:
-                if (p.validate(d)):
-                    p.ingest(d)
+                p.ingest(d) if p.validate(d) else None
 
     def print_processors_stats(self) -> None:
         if (len(self.processors) == 0):
@@ -122,24 +150,33 @@ class DataStream:
         else:
             print("== DataStream Statistics ==")
             for p in self.processors:
-                name = p.__class__.__name__.replace(
-                        "Processor", " Processor")
+                name = p.__class__.__name__.replace("Processor", " Processor")
                 print(
                     f"{name}: "
                     f"total {p._rank} items processed, "
                     f"remaining {len(p._data)}"
                     " on processor")
 
+    def output_pipeline(self, nb: int, plugin: ExportPlugin) -> None:
+        for dp in self.processors:
+            dp_output = []
+            datalen = len(dp._data)
+            for i in range(nb):
+                if (i < datalen):
+                    dp_output.append(dp.output())
+            plugin.process_output(dp_output)
+
 
 if __name__ == "__main__":
-    print("=== Code Nexus - Data Stream ===", end="\n\n")
+    print("=== Code Nexus - Data Pipeline ===", end="\n\n")
     print("Initialize Data Stream...")
     ds = DataStream()
     ds.print_processors_stats()
     print()
-    print("Registering Numeric Processor", end="\n\n")
-    np = NumericProcessor()
-    ds.register_processor(np)
+    print("Registering Processors", end="\n\n")
+    ds.register_processor(NumericProcessor())
+    ds.register_processor(TextProcessor())
+    ds.register_processor(LogProcessor())
     data = ["Hello World",
             [3.14, -1, 2.71],
             [{"log_level": "WARNING",
@@ -150,20 +187,23 @@ if __name__ == "__main__":
             ["Hi", "five"]]
     print(f"Send first batch of data on stream: {data}")
     ds.process_stream(data)
+    print()
     ds.print_processors_stats()
     print()
-    print("Registering other data processors")
-    ds.register_processor(TextProcessor())
-    ds.register_processor(LogProcessor())
-    print("Send the same batch again")
-    ds.process_stream(data)
+    print("Send 3 processed data from each processor to a CSV plugin: ")
+    ds.output_pipeline(3, CSVPlugin())
+    print()
     ds.print_processors_stats()
-    print("\nConsume some elements from the data processors: "
-          "Numeric 3, Text 2, Log 1")
-    print(ds.processors[0].output()[1])
-    print(ds.processors[0].output()[1])
-    print(ds.processors[0].output()[1])
-    print(ds.processors[1].output()[1])
-    ds.processors[1].output()
-    ds.processors[2].output()
+    print()
+    data_two = [21, ["I love AI", "LLMs are wonderful", "Stay healthy"],
+                [{"log_level": "ERROR", "log_message": "500 server crash"},
+                 {"log_level": "NOTICE", "log_message":
+                  "Certificate expires in 10 days"}],
+                [32, 42, 64, 84, 128, 168], "World hello"]
+    print(f"Send another batch of data: {data_two}\n")
+    ds.process_stream(data_two)
+    ds.print_processors_stats()
+    print("\nSend 5 processed data from each processor to a JSON plugin:")
+    ds.output_pipeline(5, JSONPlugin())
+    print()
     ds.print_processors_stats()
