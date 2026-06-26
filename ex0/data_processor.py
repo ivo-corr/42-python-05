@@ -109,7 +109,7 @@ if __name__ == "__main__":
     print(" Processing data [1, 2, 3, 4, 5]")
     np.ingest([1, 2, 3, 4, 5])
     print(" Extracting 3 values...")
-    for i in range(3):
+    for i in range(10):
         out = np.output()
         print(f" Numeric value {out[0]}: {out[1]}")
     print()
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     lp = LogProcessor()
     print(f" Trying to validate input 'Hello': {lp.validate('Hello')}")
     data_log = [{'log_level': 'NOTICE', 'log_message': 'Connection to server'},
-            {'log_level': 'ERROR', 'log_message': 'Unauthorized access!!'}]
+                {'log_level': 'ERROR', 'log_message': 'Unauthorized access!!'}]
     print(f" Processing data: {data}")
     lp.ingest(data_log)
     for _ in range(2):
