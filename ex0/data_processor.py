@@ -70,10 +70,10 @@ class TextProcessor(DataProcessor):
 
 class LogProcessor(DataProcessor):
     def validate(self, data: typing.Any) -> bool:
-        if (type(data) is list[dict[str, str]]):
+        if (type(data) is list):
             if (all([self.validate(d) for d in data])):
                 return (True)
-        if (type(data) is dict[str, str]):
+        if (type(data) is dict):
             if (len(data) == 2 and
                 "log_level" in data.keys() and
                     "log_message" in data.keys()):
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     print(" Processing data [1, 2, 3, 4, 5]")
     np.ingest([1, 2, 3, 4, 5])
     print(" Extracting 3 values...")
-    for i in range(10):
+    for i in range(3):
         out = np.output()
         print(f" Numeric value {out[0]}: {out[1]}")
     print()
@@ -125,7 +125,11 @@ if __name__ == "__main__":
     print()
     print("Testing Log Processor...")
     lp = LogProcessor()
-    print(f" Trying to validate input 'Hello': {lp.validate('Hello')}")
+    print(" Trying to validate input 'Hello': ")
+    try:
+        lp.validate('Hello')
+    except Exception as e:
+        print(e)
     data_log = [{'log_level': 'NOTICE', 'log_message': 'Connection to server'},
                 {'log_level': 'ERROR', 'log_message': 'Unauthorized access!!'}]
     print(f" Processing data: {data}")
